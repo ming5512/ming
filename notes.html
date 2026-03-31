@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的笔记本</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f0f2f5;--card:#fff;--border:#e2e5e9;--pri:#4a7dca;--pri2:#3a66b0;--text:#2c3e50;--text2:#8a96a3;--side:#f8f9fa;--red:#e55;--hover:#edf2f8;--active:#dbe6f4}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}::-webkit-scrollbar-thumb:hover{background:#aaa}
+
+.side{width:260px;min-width:260px;background:var(--side);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh}
+.side-top{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.side-top h1{font-size:17px;font-weight:600;display:flex;align-items:center;gap:6px}
+.btn-add{background:var(--pri);color:#fff;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:13px;font-weight:500;transition:.2s}
+.btn-add:hover{background:var(--pri2)}
+.side-search{padding:8px 12px}
+.side-search input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;outline:none;transition:.2s}
+.side-search input:focus{border-color:var(--pri);box-shadow:0 0 0 2px rgba(74,125,202,.15)}
+.side-list{flex:1;overflow-y:auto;padding:6px 8px}
+.item{padding:9px 10px;border-radius:7px;cursor:pointer;margin-bottom:2px;position:relative;transition:.12s}
+.item:hover{background:var(--hover)}.item.on{background:var(--active)}
+.item-t{font-size:13px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding-right:22px}
+.item-p{font-size:11px;color:var(--text2);margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.item-d{font-size:10px;color:var(--text2);margin-top:2px}
+.item .x{position:absolute;top:8px;right:6px;background:none;border:none;color:var(--text2);cursor:pointer;font-size:15px;opacity:0;transition:.12s}
+.item:hover .x{opacity:1}.item .x:hover{color:var(--red)}
+
+.main{flex:1;display:flex;flex-direction:column;height:100vh;min-width:0}
+.bar{padding:6px 12px;border-bottom:1px solid var(--border);background:var(--card);display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.b{background:none;border:1px solid transparent;border-radius:4px;padding:4px 7px;cursor:pointer;font-size:13px;color:var(--text);transition:.12s;min-width:28px;display:flex;align-items:center;justify-content:center}
+.b:hover{background:#eee;border-color:var(--border)}
+.sep{width:1px;height:18px;background:var(--border);margin:0 3px}
+.sel{padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none;cursor:pointer;background:#fff}
+.ttl{width:100%;padding:10px 18px;font-size:20px;font-weight:600;border:none;outline:none;background:var(--card);border-bottom:1px solid var(--border)}
+.ttl::placeholder{color:#ccc}
+.ed{flex:1;padding:18px;overflow-y:auto;outline:none;font-size:14px;line-height:1.9;background:var(--card);min-height:0}
+.ed:empty::before{content:"开始写笔记...";color:#ccc;pointer-events:none}
+.ed img{max-width:100%;border-radius:6px;margin:8px 0;display:block;cursor:pointer}
+.ed blockquote{border-left:3px solid var(--pri);padding-left:12px;margin:8px 0;color:#666}
+.ed pre{background:#f4f4f4;padding:10px;border-radius:6px;overflow-x:auto;font-size:12px}
+.ed ul,.ed ol{padding-left:22px}
+.ed a{color:var(--pri)}
+.foot{padding:3px 14px;font-size:11px;color:var(--text2);background:var(--card);border-top:1px solid var(--border);display:flex;justify-content:space-between}
+.ed.dragover{background:#eef5ff;outline:2px dashed var(--pri);outline-offset:-4px}
+
+.empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:15px;flex-direction:column;gap:10px}
+.empty svg{width:56px;height:56px;opacity:.25}
+
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:100;align-items:center;justify-content:center;cursor:zoom-out}
+.modal.show{display:flex}.modal img{max-width:90%;max-height:90%;border-radius:8px}
+
+@media(max-width:700px){.side{width:100%;min-width:100%;position:absolute;z-index:10}.side.hide{display:none}.bmenu{display:inline-flex!important}}
+.bmenu{display:none;background:none;border:none;font-size:18px;cursor:pointer;margin-right:6px}
+
+.clr-wrap{position:relative;display:inline-flex}.clr-wrap input[type=color]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="side" id="side">
+  <div class="side-top">
+    <h1>📝 笔记本</h1>
+    <button class="btn-add" onclick="newNote()">+ 新建</button>
+  </div>
+  <div class="side-search"><input type="text" placeholder="搜索笔记..." id="q" oninput="render()"></div>
+  <div class="side-list" id="list"></div>
+</div>
+
+<div class="main">
+  <div class="empty" id="empty">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    <span>选择或新建一篇笔记</span>
+  </div>
+
+  <div id="panel" style="display:none;flex-direction:column;flex:1;min-height:0">
+    <div class="bar">
+      <button class="bmenu" onclick="toggleSide()">☰</button>
+      <select class="sel" onchange="fmtBlock(this.value);this.selectedIndex=0">
+        <option value="">段落格式</option>
+        <option value="p">正文</option>
+        <option value="h1">标题 1</option>
+        <option value="h2">标题 2</option>
+        <option value="h3">标题 3</option>
+        <option value="blockquote">引用</option>
+        <option value="pre">代码块</option>
+      </select>
+      <div class="sep"></div>
+      <button class="b" onclick="cmd('bold')" title="加粗 Ctrl+B"><b>B</b></button>
+      <button class="b" onclick="cmd('italic')" title="斜体 Ctrl+I"><i>I</i></button>
+      <button class="b" onclick="cmd('underline')" title="下划线 Ctrl+U"><u>U</u></button>
+      <button class="b" onclick="cmd('strikeThrough')" title="删除线"><s>S</s></button>
+      <div class="sep"></div>
+      <button class="b" onclick="cmd('insertUnorderedList')" title="无序列表">•≡</button>
+      <button class="b" onclick="cmd('insertOrderedList')" title="有序列表">1.≡</button>
+      <div class="sep"></div>
+      <button class="b" onclick="cmd('justifyLeft')" title="左对齐">☰</button>
+      <button class="b" onclick="cmd('justifyCenter')" title="居中">≡</button>
+      <button class="b" onclick="cmd('justifyRight')" title="右对齐">☰</button>
+      <div class="sep"></div>
+      <div class="clr-wrap"><button class="b" title="文字颜色">A▾</button><input type="color" value="#333" onchange="cmd('foreColor',this.value)"></div>
+      <div class="clr-wrap"><button class="b" title="高亮">🖍</button><input type="color" value="#ffff00" onchange="cmd('hiliteColor',this.value)"></div>
+      <div class="sep"></div>
+      <button class="b" onclick="addLink()" title="链接">🔗</button>
+      <button class="b" onclick="$('fi').click()" title="插入图片">🖼️</button>
+      <button class="b" onclick="cmd('removeFormat')" title="清除格式">⌧</button>
+      <div class="sep"></div>
+      <button class="b" onclick="cmd('undo')" title="撤销">↩</button>
+      <button class="b" onclick="cmd('redo')" title="重做">↪</button>
+      <div class="sep"></div>
+      <button class="b" onclick="dlNote()" title="保存为HTML文件 Ctrl+S">💾</button>
+    </div>
+    <input class="ttl" id="ttl" placeholder="笔记标题..." oninput="onTitle()">
+    <div class="ed" id="ed" contenteditable="true"></div>
+    <div class="foot"><span id="wc">0 字</span><span id="st">已保存</span></div>
+  </div>
+</div>
+
+<div class="modal" id="modal" onclick="this.classList.remove('show')"><img id="mimg"></div>
+<input type="file" id="fi" accept="image/*" multiple style="display:none" onchange="imgs(this.files)">
+
+<script>
+const K='_notes_';
+let ns=[],cur=null,stm=null;
+const $=id=>document.getElementById(id);
+
+// ── 数据 ──
+function load(){try{ns=JSON.parse(localStorage.getItem(K))||[]}catch{ns=[]}}
+function save(){localStorage.setItem(K,JSON.stringify(ns));$('st').textContent='✓ 已保存'}
+function find(id){return ns.find(n=>n.id===id)}
+
+load();render();
+
+// ── 新建/删除/选择 ──
+function newNote(){
+  const n={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),title:'',content:'',created:Date.now(),updated:Date.now()};
+  ns.unshift(n);save();sel(n.id);render();$('ttl').focus();
+}
+function del(id,e){
+  e&&e.stopPropagation();
+  if(!confirm('确定删除？'))return;
+  ns=ns.filter(n=>n.id!==id);save();
+  if(cur===id){cur=null;show(false)}
+  render();
+}
+function sel(id){
+  cur=id;const n=find(id);if(!n)return;
+  $('ttl').value=n.title;$('ed').innerHTML=n.content;
+  show(true);render();wc();
+  if(innerWidth<=700)$('side').classList.add('hide');
+}
+function show(v){$('empty').style.display=v?'none':'flex';$('panel').style.display=v?'flex':'none'}
+
+// ── 列表 ──
+function render(){
+  const q=$('q').value.toLowerCase(),l=$('list');
+  const f=ns.filter(n=>{if(!q)return true;const t=strip(n.content);return n.title.toLowerCase().includes(q)||t.toLowerCase().includes(q)});
+  l.innerHTML=f.map(n=>{
+    const p=strip(n.content).slice(0,50);
+    const d=new Date(n.updated).toLocaleString('zh-CN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return`<div class="item${n.id===cur?' on':''}" onclick="sel('${n.id}')"><div class="item-t">${esc(n.title)||'无标题'}</div><div class="item-p">${esc(p)||'空笔记'}</div><div class="item-d">${d}</div><button class="x" onclick="del('${n.id}',event)">×</button></div>`;
+  }).join('');
+}
+
+// ── 自动保存 ──
+function autoSave(){
+  $('st').textContent='编辑中...';
+  clearTimeout(stm);
+  stm=setTimeout(()=>{flush();save();render()},600);
+}
+function flush(){
+  const n=find(cur);if(!n)return;
+  n.content=$('ed').innerHTML;n.title=$('ttl').value;n.updated=Date.now();
+  ns=ns.filter(x=>x.id!==cur);ns.unshift(n);
+}
+function onTitle(){autoSave();const n=find(cur);if(n)n.title=$('ttl').value;render()}
+$('ed').addEventListener('input',()=>{autoSave();wc()});
+function wc(){const t=$('ed').innerText||'';$('wc').textContent=t.replace(/\s/g,'').length+' 字'}
+
+// ── 工具栏 ──
+function cmd(c,v){document.execCommand(c,false,v||null);$('ed').focus()}
+function fmtBlock(t){if(!t)return;document.execCommand('formatBlock',false,t);$('ed').focus()}
+function addLink(){const u=prompt('输入链接：','https://');if(u)cmd('createLink',u)}
+
+// ── 图片 ──
+function imgs(files){
+  for(const f of files){
+    if(!f.type.startsWith('image/'))continue;
+    const r=new FileReader();
+    r.onload=e=>{
+      if(e.target.result.length>2*1024*1024){compress(e.target.result,d=>insImg(d))}
+      else insImg(e.target.result);
+    };r.readAsDataURL(f);
+  }$('fi').value='';
+}
+function compress(d,cb){
+  const i=new Image();i.onload=()=>{
+    const c=document.createElement('canvas');const mx=1200;let w=i.width,h=i.height;
+    if(w>mx){h=h*mx/w;w=mx}c.width=w;c.height=h;
+    c.getContext('2d').drawImage(i,0,0,w,h);cb(c.toDataURL('image/jpeg',.7));
+  };i.src=d;
+}
+function insImg(d){$('ed').focus();document.execCommand('insertHTML',false,`<img src="${d}" alt="图片"><br>`);autoSave()}
+
+// 粘贴图片
+$('ed').addEventListener('paste',e=>{
+  const it=e.clipboardData?.items;if(!it)return;
+  for(const i of it){if(i.type.startsWith('image/')){e.preventDefault();imgs([i.getAsFile()]);return}}
+});
+// 拖拽图片
+const ed=$('ed');
+ed.addEventListener('dragover',e=>{e.preventDefault();ed.classList.add('dragover')});
+ed.addEventListener('dragleave',()=>ed.classList.remove('dragover'));
+ed.addEventListener('drop',e=>{e.preventDefault();ed.classList.remove('dragover');if(e.dataTransfer.files.length)imgs(e.dataTransfer.files)});
+// 点击放大
+ed.addEventListener('click',e=>{if(e.target.tagName==='IMG'){$('mimg').src=e.target.src;$('modal').classList.add('show')}});
+
+// ── Ctrl+S 弹出文件资源管理器选择保存位置 ──
+function buildHtml(n){
+  const t=n.title||'未命名笔记',now=new Date().toLocaleString('zh-CN');
+  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${esc(t)}</title>
+<style>body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;max-width:800px;margin:40px auto;padding:0 24px 60px;line-height:1.8;color:#333}
+h1{border-bottom:2px solid #4a7dca;padding-bottom:8px;margin-bottom:16px}img{max-width:100%;border-radius:6px;margin:10px 0}
+blockquote{border-left:3px solid #4a7dca;padding-left:12px;color:#555;margin:10px 0}pre{background:#f4f4f4;padding:10px;border-radius:6px;overflow-x:auto}
+.meta{color:#999;font-size:13px;margin-bottom:18px}</style>
+</head><body><h1>${esc(t)}</h1><div class="meta">保存时间：${now}</div>${n.content}</body></html>`;
+}
+
+async function dlNote(){
+  flush();const n=find(cur);
+  if(!n){alert('请先选择笔记');return}
+  const t=n.title||'未命名笔记';
+  const html=buildHtml(n);
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+
+  // 优先使用 File System Access API（弹出系统文件资源管理器）
+  if(window.showSaveFilePicker){
+    try{
+      const handle=await showSaveFilePicker({
+        suggestedName: t+'.html',
+        types:[{description:'HTML 文件',accept:{'text/html':['.html','.htm']}}]
+      });
+      const writable=await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      $('st').textContent='✓ 已保存到: '+handle.name;
+      return;
+    }catch(e){
+      if(e.name==='AbortError')return; // 用户取消
+    }
+  }
+  // 降级：普通下载
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=t+'.html';a.click();URL.revokeObjectURL(a.href);
+  $('st').textContent='✓ 已导出: '+t+'.html';
+}
+
+// ── 快捷键 ──
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();newNote()}
+  if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();dlNote()}
+});
+
+// 关闭前保存
+addEventListener('beforeunload',()=>{flush();save()});
+
+function toggleSide(){$('side').classList.toggle('hide')}
+function strip(h){const d=document.createElement('div');d.innerHTML=h;return d.textContent||''}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+</script>
+</body>
+</html>
